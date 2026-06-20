@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelDoc — Simulateur de prix</title>
+<style>
+/* ===== ROOT — Palette PixelDoc standard ===== */
+:root {
+  --bg:       #0f1117;
+  --surface:  #1a1d27;
+  --surface2: #22263a;
+  --border:   #2a2f45;
+  --accent:   #6ee7b7;
+  --accent4:  #60a5fa;
+  --dim:      #6b7280;
+  --text:     #e2e8f0;
+  --green:    #6ee7b7;
+  --yellow:   #fbbf24;
+  --red:      #f87171;
+  --orange:   #fb923c;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ===== PD-NAVBAR ===== */
+.pd-navbar {
+  position: sticky; top: 0; z-index: 60;
+  background: #0a0d13; border-bottom: 1px solid var(--border);
+  height: 36px; display: flex; align-items: center;
+}
+.pd-navbar-inner { display: flex; align-items: center; gap: 2px; padding: 0 12px; }
+.pd-nav-link {
+  display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; color: var(--dim); text-decoration: none;
+  transition: all .15s; white-space: nowrap;
+}
+.pd-nav-link:hover { color: var(--text); background: var(--surface2); }
+.pd-nav-active { color: var(--accent) !important; background: rgba(110,231,183,0.1) !important; }
+@media (max-width: 480px) {
+  .pd-nav-link span { display: none; }
+  .pd-nav-link { font-size: 15px; padding: 4px 8px; }
+}
+
+/* ===== LAYOUT ===== */
+.wrapper {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+h1 {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 17px; font-weight: 600;
+  color: var(--accent); letter-spacing: 0.05em; margin-bottom: 4px;
+}
+.sub { color: var(--dim); font-size: 12px; margin-bottom: 28px; font-family: 'Courier New', monospace; }
+
+/* ===== SECTIONS ===== */
+.section-title {
+  font-family: 'Courier New', monospace; font-size: 10px; font-weight: 600;
+  color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase;
+  margin: 24px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+
+/* ===== GRID FORM ===== */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+label {
+  font-size: 11px; font-weight: 600; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+select, input[type="number"] {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; border-radius: 6px; font-size: 13px;
+  font-family: inherit; appearance: none; -webkit-appearance: none;
+  width: 100%; transition: border-color 0.2s; outline: none;
+}
+select:focus, input[type="number"]:focus { border-color: var(--accent); }
+
+/* ===== INLINE ROW (taux horaire + heures) ===== */
+.inline-row { display: flex; align-items: center; gap: 8px; }
+.inline-row input[type="number"] { flex: 1; }
+.inline-sep { color: var(--dim); font-size: 13px; flex-shrink: 0; }
+
+/* ===== PILLS ===== */
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill {
+  padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--dim); cursor: pointer;
+  font-size: 12px; font-weight: 500; transition: all 0.15s;
+}
+.pill:hover { border-color: var(--accent); color: var(--text); }
+.pill.active { background: var(--accent); border-color: var(--accent); color: #0f1117; font-weight: 600; }
+.pill.active.warn { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+/* ===== MODE TABS ===== */
+.mode-tabs { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+.mode-tab {
+  flex: 1; padding: 10px; text-align: center; cursor: pointer;
+  background: var(--surface2); color: var(--dim);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+  border: none; transition: all .15s; font-family: inherit;
+}
+.mode-tab:first-child { border-right: 1px solid var(--border); }
+.mode-tab.active { background: var(--accent); color: #0f1117; }
+
+/* ===== BOUTONS ===== */
+.btn {
+  width: 100%; margin-top: 24px; padding: 14px;
+  background: var(--accent); color: #0f1117;
+  border: none; border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.05em;
+  cursor: pointer; transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.88; }
+.btn-secondary {
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); margin-top: 10px;
+}
+.btn-secondary:hover { opacity: 1; border-color: var(--accent4); }
+
+/* ===== RÉSULTAT ===== */
+.result {
+  margin-top: 24px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; display: none;
+}
+.result.show { display: block; }
+.result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.rcard { background: var(--surface2); border-radius: 8px; padding: 14px; text-align: center; }
+.rcard .val {
+  font-family: 'Courier New', monospace; font-size: 22px; font-weight: 700;
+  margin: 6px 0 2px;
+}
+.rcard .lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.rcard .sub-lbl { font-size: 11px; color: var(--dim); margin-top: 4px; }
+.col-green { color: var(--green); }
+.col-yellow { color: var(--yellow); }
+.col-red { color: var(--red); }
+.col-accent { color: var(--accent); }
+
+/* ===== BARRE DE PROGRESSION ===== */
+.bar-bg { background: var(--border); border-radius: 4px; height: 8px; margin-top: 10px; overflow: hidden; }
+.bar-fill { height: 8px; border-radius: 4px; transition: width 0.5s ease; }
+
+/* ===== TAG ===== */
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 600;
+  font-family: 'Courier New', monospace; margin-right: 6px;
+}
+.tag.hot  { background: rgba(110,231,183,.15); color: var(--green);  border: 1px solid var(--green); }
+.tag.ok   { background: rgba(251,191,36,.12);  color: var(--yellow); border: 1px solid var(--yellow); }
+.tag.low  { background: rgba(248,113,113,.12); color: var(--red);    border: 1px solid var(--red); }
+
+/* ===== ALERTE PERTE ===== */
+.alert-perte {
+  display: none; margin-top: 12px;
+  background: rgba(248,113,113,.1); border: 1px solid var(--red);
+  border-radius: 6px; padding: 10px 14px;
+  font-size: 12px; color: var(--red); line-height: 1.5;
+}
+.alert-perte.show { display: block; }
+
+/* ===== CONSEIL ===== */
+.advice {
+  background: var(--surface2); border-left: 3px solid var(--accent);
+  padding: 12px 14px; border-radius: 0 6px 6px 0;
+  font-size: 13px; line-height: 1.6; color: var(--text);
+}
+
+/* ===== MODE INVERSÉ ===== */
+.section-inverse { display: none; }
+.section-inverse.show { display: block; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .result-grid { grid-template-columns: 1fr 1fr; }
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== PD-NAVBAR ===== -->
+<nav class="pd-navbar">
+  <div class="pd-navbar-inner">
+    <a href="https://pixeldoc-974.netlify.app" class="pd-nav-link" target="_blank" rel="noopener">🏠 <span>Vitrine</span></a>
+    <a href="https://pixeldoc-atelier.netlify.app" class="pd-nav-link" target="_blank" rel="noopener">🔧 <span>Atelier</span></a>
+    <a href="https://stock-reconditionner.netlify.app" class="pd-nav-link" target="_blank" rel="noopener">📦 <span>Stock</span></a>
+    <a href="https://calculateur-pieces.netlify.app" class="pd-nav-link" target="_blank" rel="noopener">🧮 <span>Calculateur</span></a>
+    <a href="https://simulateur-de-prix.netlify.app" class="pd-nav-link pd-nav-active" target="_blank" rel="noopener">💻 <span>Simulateur</span></a>
+  </div>
+</nav>
+
+<!-- ===== CONTENU ===== -->
+<div class="wrapper">
+  <h1>// PIXELDOC — SIMULATEUR</h1>
+  <p class="sub">calcul prix de revente &amp; retour sur investissement</p>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab-normal" onclick="switchMode('normal')">▶ CALCULER MA MARGE</button>
+    <button class="mode-tab" id="tab-inverse" onclick="switchMode('inverse')">◀ PRIX D'ACHAT MAX</button>
+  </div>
+
+  <!-- ===== MODE NORMAL ===== -->
+  <div id="section-normal">
+
+    <div class="section-title">01 — Machine</div>
+    <div class="grid">
+      <div class="field">
+        <label>Marque / Série</label>
+        <select id="model">
+          <optgroup label="Lenovo">
+            <option value="thinkpad_t">ThinkPad T-series</option>
+            <option value="thinkpad_x">ThinkPad X-series</option>
+            <option value="ideapad">Lenovo IdeaPad</option>
+          </optgroup>
+          <optgroup label="Dell">
+            <option value="dell_latitude">Dell Latitude</option>
+            <option value="dell_optiplex">Dell OptiPlex</option>
+          </optgroup>
+          <optgroup label="HP">
+            <option value="hp_elite">HP EliteBook / ProDesk</option>
+          </optgroup>
+          <optgroup label="Autres">
+            <option value="acer">Acer (Aspire/TravelMate)</option>
+            <option value="asus">Asus (VivoBook/ZenBook)</option>
+            <option value="autre_laptop">Autre laptop</option>
+            <option value="autre_fixe">Autre fixe</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Processeur</label>
+        <select id="gen">
+          <optgroup label="Intel Core i3">
+            <option value="i3_6">i3 6e gen</option>
+            <option value="i3_8">i3 8e gen</option>
+            <option value="i3_10">i3 10e gen</option>
+            <option value="i3_12">i3 12e gen</option>
+          </optgroup>
+          <optgroup label="Intel Core i5">
+            <option value="6">i5 6e gen</option>
+            <option value="7">i5 7e gen</option>
+            <option value="8">i5 8e gen</option>
+            <option value="9">i5 9e gen</option>
+            <option value="10">i5 10e gen</option>
+            <option value="11">i5 11e gen</option>
+            <option value="12">i5 12e gen</option>
+            <option value="13">i5 13e gen</option>
+            <option value="14">i5 14e gen</option>
+          </optgroup>
+          <optgroup label="Intel Core i7">
+            <option value="6i7">i7 6e gen</option>
+            <option value="8i7">i7 8e gen</option>
+            <option value="10i7">i7 10e gen</option>
+            <option value="12i7">i7 12e gen</option>
+            <option value="13i7">i7 13e gen</option>
+          </optgroup>
+          <optgroup label="AMD Ryzen">
+            <option value="r3_3">Ryzen 3 (3000)</option>
+            <option value="r5_3">Ryzen 5 (3000/4000)</option>
+            <option value="r5_5">Ryzen 5 (5000)</option>
+            <option value="r7_3">Ryzen 7 (3000/4000)</option>
+            <option value="r7_5">Ryzen 7 (5000)</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>RAM</label>
+        <select id="ram">
+          <option value="0">4 Go</option>
+          <option value="15" selected>8 Go</option>
+          <option value="30">16 Go</option>
+          <option value="50">32 Go</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Stockage</label>
+        <select id="ssd">
+          <option value="0">HDD (pas de SSD)</option>
+          <option value="10">SSD 128 Go</option>
+          <option value="20" selected>SSD 256 Go</option>
+          <option value="30">SSD 512 Go</option>
+          <option value="45">SSD 1 To</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title">02 — État général</div>
+    <div class="pills" id="etat">
+      <button class="pill" data-val="30" onclick="pickPill(this,'etat')">Très bon</button>
+      <button class="pill active" data-val="15" onclick="pickPill(this,'etat')">Bon</button>
+      <button class="pill" data-val="0" onclick="pickPill(this,'etat')">Correct</button>
+      <button class="pill warn" data-val="-20" onclick="pickPill(this,'etat')">Abîmé</button>
+    </div>
+
+    <div class="section-title">03 — Défauts constatés</div>
+    <div class="pills" id="defauts">
+      <button class="pill" data-val="-30" onclick="togglePill(this)">Dalle fissurée</button>
+      <button class="pill" data-val="-15" onclick="togglePill(this)">Batterie usée</button>
+      <button class="pill" data-val="-10" onclick="togglePill(this)">Touches manquantes</button>
+      <button class="pill" data-val="-20" onclick="togglePill(this)">Coque cassée</button>
+      <button class="pill" data-val="-10" onclick="togglePill(this)">Chargeur manquant</button>
+      <button class="pill" data-val="-25" onclick="togglePill(this)">Ventilateur HS</button>
+    </div>
+
+    <div class="section-title">04 — Coûts</div>
+    <div class="grid">
+      <div class="field">
+        <label>Prix d'achat (€)</label>
+        <input type="number" id="achat" value="30" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Pièces importées (€)</label>
+        <input type="number" id="pieces" value="20" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Octroi de mer (%)</label>
+        <input type="number" id="octroi" value="2.5" min="0" max="50" step="0.1">
+      </div>
+      <div class="field">
+        <label>Taux horaire (€/h)</label>
+        <input type="number" id="taux" value="35" min="0" step="1">
+      </div>
+      <div class="field full">
+        <label>Main d'œuvre (heures)</label>
+        <div class="inline-row">
+          <input type="number" id="heures" value="1" min="0" step="0.5">
+          <span class="inline-sep">h  ×</span>
+          <input type="number" id="taux2" value="35" min="0" step="1">
+          <span class="inline-sep">€/h</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="calc()">▶ CALCULER LA MARGE</button>
+
+    <!-- Résultat mode normal -->
+    <div class="result" id="result">
+      <div class="result-grid">
+        <div class="rcard">
+          <div class="lbl">Prix conseillé</div>
+          <div class="val col-accent" id="r-prix">—</div>
+          <div class="sub-lbl" id="r-fourchette">—</div>
+        </div>
+        <div class="rcard">
+          <div class="lbl">Marge brute</div>
+          <div class="val" id="r-marge">—</div>
+          <div class="sub-lbl" id="r-cout">—</div>
+        </div>
+        <div class="rcard">
+          <div class="lbl">Retour invest.</div>
+          <div class="val" id="r-pct">—</div>
+          <div class="bar-bg"><div class="bar-fill" id="r-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="alert-perte" id="r-alerte-perte"></div>
+      <div class="advice" id="r-advice"></div>
+    </div>
+
+  </div><!-- /section-normal -->
+
+  <!-- ===== MODE INVERSÉ ===== -->
+  <div id="section-inverse" class="section-inverse">
+
+    <div class="section-title">01 — Machine (même sélection)</div>
+    <p style="font-size:12px;color:var(--dim);margin-bottom:12px;">Utilise les mêmes réglages Machine / État / Défauts que le mode Normal.</p>
+
+    <div class="section-title">02 — Objectif de marge</div>
+    <div class="grid">
+      <div class="field">
+        <label>Prix de vente cible (€)</label>
+        <input type="number" id="inv-vente" value="120" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Marge min souhaitée (%)</label>
+        <input type="number" id="inv-marge-min" value="30" min="0" max="100" step="1">
+      </div>
+      <div class="field">
+        <label>Pièces estimées (€)</label>
+        <input type="number" id="inv-pieces" value="20" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Octroi de mer (%)</label>
+        <input type="number" id="inv-octroi" value="2.5" min="0" max="50" step="0.1">
+      </div>
+      <div class="field full">
+        <label>Main d'œuvre (heures × taux)</label>
+        <div class="inline-row">
+          <input type="number" id="inv-heures" value="1" min="0" step="0.5">
+          <span class="inline-sep">h  ×</span>
+          <input type="number" id="inv-taux" value="35" min="0" step="1">
+          <span class="inline-sep">€/h</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="calcInverse()">◀ CALCULER LE PRIX D'ACHAT MAX</button>
+
+    <!-- Résultat mode inversé -->
+    <div class="result" id="result-inverse">
+      <div class="result-grid">
+        <div class="rcard">
+          <div class="lbl">Prix achat max</div>
+          <div class="val col-accent" id="ri-achat-max">—</div>
+          <div class="sub-lbl">pour atteindre la marge cible</div>
+        </div>
+        <div class="rcard">
+          <div class="lbl">Coût hors achat</div>
+          <div class="val" id="ri-cout-hors">—</div>
+          <div class="sub-lbl">pièces + octroi + MO</div>
+        </div>
+        <div class="rcard">
+          <div class="lbl">Marge générée</div>
+          <div class="val" id="ri-marge">—</div>
+          <div class="sub-lbl" id="ri-pct">—</div>
+        </div>
+      </div>
+      <div class="advice" id="ri-advice"></div>
+    </div>
+
+  </div><!-- /section-inverse -->
+
+</div><!-- /wrapper -->
+
+<script>
+/* ===== BASE PRIX MARCHÉ (i5 6e gen de référence) ===== */
+const BASE = {
+  thinkpad_t:   { i3_6:65, i3_8:80,  i3_10:95,  i3_12:115,
+                  6:90,  7:100, 8:130, 9:140, 10:155, 11:170, 12:185, 13:200, 14:210,
+                  '6i7':115, '8i7':160, '10i7':185, '12i7':215, '13i7':230,
+                  r3_3:80, r5_3:100, r5_5:130, r7_3:120, r7_5:155 },
+
+  thinkpad_x:   { i3_6:60, i3_8:75,  i3_10:90,  i3_12:110,
+                  6:85,  7:95,  8:125, 9:135, 10:150, 11:165, 12:180, 13:195, 14:205,
+                  '6i7':110, '8i7':155, '10i7':180, '12i7':210, '13i7':225,
+                  r3_3:75, r5_3:95,  r5_5:125, r7_3:115, r7_5:150 },
+
+  ideapad:      { i3_6:50, i3_8:65,  i3_10:80,  i3_12:95,
+                  6:70,  7:80,  8:105, 9:115, 10:130, 11:145, 12:160, 13:175, 14:185,
+                  '6i7':90,  '8i7':130, '10i7':155, '12i7':180, '13i7':195,
+                  r3_3:65, r5_3:85,  r5_5:110, r7_3:100, r7_5:135 },
+
+  dell_latitude:{ i3_6:55, i3_8:70,  i3_10:85,  i3_12:105,
+                  6:80,  7:90,  8:120, 9:130, 10:145, 11:160, 12:175, 13:190, 14:200,
+                  '6i7':105, '8i7':150, '10i7':175, '12i7':205, '13i7':220,
+                  r3_3:70, r5_3:90,  r5_5:120, r7_3:110, r7_5:145 },
+
+  dell_optiplex:{ i3_6:45, i3_8:60,  i3_10:75,  i3_12:90,
+                  6:70,  7:80,  8:110, 9:120, 10:135, 11:150, 12:165, 13:180, 14:190,
+                  '6i7':95,  '8i7':140, '10i7':165, '12i7':190, '13i7':205,
+                  r3_3:60, r5_3:80,  r5_5:105, r7_3:95,  r7_5:130 },
+
+  hp_elite:     { i3_6:55, i3_8:70,  i3_10:85,  i3_12:105,
+                  6:80,  7:90,  8:120, 9:130, 10:145, 11:160, 12:175, 13:190, 14:200,
+                  '6i7':105, '8i7':150, '10i7':175, '12i7':205, '13i7':220,
+                  r3_3:70, r5_3:90,  r5_5:120, r7_3:110, r7_5:145 },
+
+  acer:         { i3_6:45, i3_8:58,  i3_10:72,  i3_12:88,
+                  6:65,  7:75,  8:100, 9:110, 10:125, 11:138, 12:152, 13:165, 14:175,
+                  '6i7':85,  '8i7':125, '10i7':148, '12i7':172, '13i7':185,
+                  r3_3:60, r5_3:78,  r5_5:102, r7_3:92,  r7_5:125 },
+
+  asus:         { i3_6:48, i3_8:62,  i3_10:76,  i3_12:92,
+                  6:68,  7:78,  8:105, 9:115, 10:128, 11:142, 12:156, 13:170, 14:180,
+                  '6i7':88,  '8i7':130, '10i7':152, '12i7':176, '13i7':190,
+                  r3_3:62, r5_3:82,  r5_5:108, r7_3:96,  r7_5:130 },
+
+  autre_laptop: { i3_6:40, i3_8:52,  i3_10:65,  i3_12:80,
+                  6:60,  7:70,  8:90,  9:100, 10:115, 11:128, 12:142, 13:155, 14:165,
+                  '6i7':80,  '8i7':110, '10i7':135, '12i7':158, '13i7':172,
+                  r3_3:55, r5_3:72,  r5_5:95,  r7_3:85,  r7_5:115 },
+
+  autre_fixe:   { i3_6:35, i3_8:45,  i3_10:58,  i3_12:70,
+                  6:50,  7:60,  8:80,  9:90,  10:100, 11:112, 12:125, 13:138, 14:148,
+                  '6i7':70,  '8i7':100, '10i7':120, '12i7':142, '13i7':155,
+                  r3_3:48, r5_3:62,  r5_5:82,  r7_3:72,  r7_5:102 },
+};
+
+/* ===== UTILITAIRES ===== */
+function pickPill(el, group) {
+  document.querySelectorAll('#' + group + ' .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function togglePill(el) {
+  el.classList.toggle('active');
+}
+
+function switchMode(mode) {
+  const isNormal = mode === 'normal';
+  document.getElementById('tab-normal').classList.toggle('active', isNormal);
+  document.getElementById('tab-inverse').classList.toggle('active', !isNormal);
+  document.getElementById('section-normal').style.display = isNormal ? '' : 'none';
+  document.getElementById('section-inverse').classList.toggle('show', !isNormal);
+  if (isNormal) document.getElementById('section-inverse').style.display = 'none';
+  else document.getElementById('section-normal').style.display = 'none';
+}
+
+/* Synchronise taux horaire entre les deux champs du mode normal */
+document.getElementById('taux').addEventListener('input', function() {
+  document.getElementById('taux2').value = this.value;
+});
+document.getElementById('taux2').addEventListener('input', function() {
+  document.getElementById('taux').value = this.value;
+});
+
+/* ===== LECTURE DES INPUTS COMMUNS ===== */
+function readMachine() {
+  const model = document.getElementById('model').value;
+  const gen   = document.getElementById('gen').value;
+  const ram   = parseInt(document.getElementById('ram').value);
+  const ssd   = parseInt(document.getElementById('ssd').value);
+  const etatEl = document.querySelector('#etat .pill.active');
+  const etat  = etatEl ? parseInt(etatEl.dataset.val) : 15;
+  let defauts = 0;
+  document.querySelectorAll('#defauts .pill.active').forEach(p => { defauts += parseInt(p.dataset.val); });
+  const base  = (BASE[model] && BASE[model][gen]) ? BASE[model][gen] : 80;
+  const valeur = Math.max(30, base + ram + ssd + etat + defauts);
+  return valeur;
+}
+
+/* ===== MODE NORMAL — CALCUL ===== */
+function calc() {
+  const valeur  = readMachine();
+  const achat   = parseFloat(document.getElementById('achat').value)  || 0;
+  const pieces  = parseFloat(document.getElementById('pieces').value) || 0;
+  const octroi  = parseFloat(document.getElementById('octroi').value) || 0;
+  const heures  = parseFloat(document.getElementById('heures').value) || 0;
+  const taux    = parseFloat(document.getElementById('taux2').value)  || 0;
+
+  const coutOctroi  = pieces * (octroi / 100);
+  const coutMO      = heures * taux;
+  const coutTotal   = achat + pieces + coutOctroi + coutMO;
+  const marge       = valeur - coutTotal;
+  /* Retour sur investissement = marge / coût total × 100 */
+  const roi         = coutTotal > 0 ? Math.round((marge / coutTotal) * 100) : 100;
+  const fourchette  = `${Math.round(valeur * 0.9)}€ – ${Math.round(valeur * 1.1)}€`;
+  const fourchetteBasBas = Math.round(valeur * 0.9);
+
+  const r = document.getElementById('result');
+  r.className = 'result show';
+
+  document.getElementById('r-prix').textContent = Math.round(valeur) + '€';
+  document.getElementById('r-fourchette').textContent = fourchette;
+
+  const margeEl = document.getElementById('r-marge');
+  margeEl.textContent = (marge >= 0 ? '+' : '') + Math.round(marge) + '€';
+  margeEl.className = 'val ' + (marge >= 50 ? 'col-green' : marge >= 20 ? 'col-yellow' : 'col-red');
+
+  document.getElementById('r-cout').textContent =
+    `Coût total : ${Math.round(coutTotal)}€` +
+    (coutMO > 0 ? ` (dont MO ${Math.round(coutMO)}€)` : '') +
+    (coutOctroi > 0 ? ` (octroi ${Math.round(coutOctroi)}€)` : '');
+
+  const pctEl = document.getElementById('r-pct');
+  pctEl.textContent = roi + '%';
+  pctEl.className = 'val ' + (roi >= 60 ? 'col-green' : roi >= 30 ? 'col-yellow' : 'col-red');
+
+  const bar = document.getElementById('r-bar');
+  bar.style.width   = Math.min(100, Math.max(0, roi)) + '%';
+  bar.style.background = roi >= 60 ? 'var(--green)' : roi >= 30 ? 'var(--yellow)' : 'var(--red)';
+
+  /* Alerte perte en négociation */
+  const alertePerte = document.getElementById('r-alerte-perte');
+  if (fourchetteBasBas < coutTotal) {
+    alertePerte.className = 'alert-perte show';
+    alertePerte.textContent =
+      `⚠ Attention : la fourchette basse (${fourchetteBasBas}€) est inférieure à ton coût total (${Math.round(coutTotal)}€). ` +
+      `En cas de négociation tu pourrais vendre à perte.`;
+  } else {
+    alertePerte.className = 'alert-perte';
+  }
+
+  let tag = '';
+  if (roi >= 80)      tag = '<span class="tag hot">EXCELLENT</span>';
+  else if (roi >= 40) tag = '<span class="tag ok">CORRECT</span>';
+  else                tag = '<span class="tag low">ATTENTION</span>';
+
+  let txt = '';
+  if (marge < 0) {
+    txt = `Opération déficitaire — coût total : <strong>${Math.round(coutTotal)}€</strong> pour un bien estimé à ${Math.round(valeur)}€. Négocie le prix d'achat ou réduis les pièces.`;
+  } else if (roi >= 80) {
+    txt = `Belle affaire à +${roi}% de ROI. Vise <strong>${Math.round(valeur)}€</strong> sur LeBonCoin, tu peux descendre jusqu'à ${fourchetteBasBas}€ sans risque.`;
+  } else if (roi >= 40) {
+    txt = `Marge correcte. Soigne la présentation (nettoyage, belle photo) pour justifier <strong>${Math.round(valeur)}€</strong>. Coût de revient : ${Math.round(coutTotal)}€.`;
+  } else {
+    txt = `ROI faible (${roi}%). Cherche à réduire les pièces, négocier l'achat, ou augmenter légèrement le prix. Fourchette marché : ${fourchette}.`;
+  }
+
+  document.getElementById('r-advice').innerHTML = tag + ' ' + txt;
+}
+
+/* ===== MODE INVERSÉ — CALCUL ===== */
+function calcInverse() {
+  const valeur     = readMachine();
+  const venteRef   = parseFloat(document.getElementById('inv-vente').value)    || valeur;
+  const margeMin   = parseFloat(document.getElementById('inv-marge-min').value) || 30;
+  const pieces     = parseFloat(document.getElementById('inv-pieces').value)    || 0;
+  const octroi     = parseFloat(document.getElementById('inv-octroi').value)    || 0;
+  const heures     = parseFloat(document.getElementById('inv-heures').value)    || 0;
+  const taux       = parseFloat(document.getElementById('inv-taux').value)      || 0;
+
+  const coutOctroi   = pieces * (octroi / 100);
+  const coutMO       = heures * taux;
+  const coutHorsAchat = pieces + coutOctroi + coutMO;
+
+  /* Pour un ROI de margeMin% : marge = coutTotal * margeMin/100
+     venteRef = coutTotal + marge = coutTotal * (1 + margeMin/100)
+     coutTotal = venteRef / (1 + margeMin/100)
+     achatMax = coutTotal - coutHorsAchat */
+  const coutTotalCible = venteRef / (1 + margeMin / 100);
+  const achatMax       = Math.max(0, coutTotalCible - coutHorsAchat);
+  const margeGeneree   = venteRef - (achatMax + coutHorsAchat);
+  const roiReel        = (achatMax + coutHorsAchat) > 0
+    ? Math.round((margeGeneree / (achatMax + coutHorsAchat)) * 100)
+    : 100;
+
+  const r = document.getElementById('result-inverse');
+  r.className = 'result show';
+
+  const achatEl = document.getElementById('ri-achat-max');
+  achatEl.textContent = Math.round(achatMax) + '€';
+  achatEl.className = 'val ' + (achatMax > 0 ? 'col-accent' : 'col-red');
+
+  document.getElementById('ri-cout-hors').textContent = Math.round(coutHorsAchat) + '€';
+  const margeEl2 = document.getElementById('ri-marge');
+  margeEl2.textContent = '+' + Math.round(margeGeneree) + '€';
+  margeEl2.className = 'val ' + (roiReel >= 40 ? 'col-green' : 'col-yellow');
+  document.getElementById('ri-pct').textContent = 'ROI : ' + roiReel + '%';
+
+  let advTxt = '';
+  if (achatMax <= 0) {
+    advTxt = `Impossible d'atteindre ${margeMin}% de ROI à ce prix de vente — les coûts hors achat (${Math.round(coutHorsAchat)}€) dépassent déjà le budget. Augmente le prix de vente ou réduis les pièces.`;
+  } else if (achatMax < 10) {
+    advTxt = `Le prix d'achat max est très bas (${Math.round(achatMax)}€) — difficile à trouver. Envisage de baisser la marge cible ou d'augmenter le prix de vente.`;
+  } else {
+    const prixVenteConseil = Math.round(valeur);
+    advTxt = `Pour ce type de machine, le marché suggère environ <strong>${prixVenteConseil}€</strong>. ` +
+      `Si tu achètes à ${Math.round(achatMax)}€ ou moins et vends à ${Math.round(venteRef)}€, ton ROI atteint ${roiReel}%.`;
+  }
+  document.getElementById('ri-advice').innerHTML = advTxt;
+}
+</script>
+
+</body>
+</html>
