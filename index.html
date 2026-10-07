@@ -1,9 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PixelDoc — Simulateur de prix</title>
+<meta name="description" content="Simulateur de marge et de prix d'achat maximum pour PC reconditionnés : outil interne PixelDoc, Saint-Denis (La Réunion).">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0f1117">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f1117'/%3E%3Ctext x='16' y='23' font-size='20' font-weight='800' text-anchor='middle' fill='%236ee7b7' font-family='sans-serif'%3EP%3C/text%3E%3C/svg%3E">
 <style>
 /* ===== ROOT — Palette PixelDoc standard ===== */
 :root {
@@ -13,7 +17,7 @@
   --border:   #2a2f45;
   --accent:   #6ee7b7;
   --accent4:  #60a5fa;
-  --dim:      #6b7280;
+  --dim:      #94a3b8;
   --text:     #e2e8f0;
   --green:    #6ee7b7;
   --yellow:   #fbbf24;
@@ -185,12 +189,24 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
   .result-grid { grid-template-columns: 1fr 1fr; }
   .grid { grid-template-columns: 1fr; }
 }
+
+/* ===== ACCESSIBILITÉ (audit) ===== */
+.skip-link { position: absolute; left: -9999px; top: 6px; background: var(--accent); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-weight: 700; z-index: 100; }
+.skip-link:focus { left: 8px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+@media (max-width: 480px) {
+  input, select { font-size: 16px; }
+  .inline-row { flex-wrap: wrap; }
+  .wrapper { padding: 20px 14px 40px; }
+}
 </style>
 </head>
 <body>
 
 <!-- ===== PD-NAVBAR ===== -->
-<nav class="pd-navbar">
+<a class="skip-link" href="#main">Aller au contenu</a>
+<nav class="pd-navbar" aria-label="Sites PixelDoc">
   <div class="pd-navbar-inner">
     <a href="https://frederic-pixeldoc.github.io/pixeldoc-974/" class="pd-nav-link" target="_blank" rel="noopener">🏠 <span>Vitrine</span></a>
     <a href="https://frederic-pixeldoc.github.io/pixeldoc-atelier/" class="pd-nav-link" target="_blank" rel="noopener">🔧 <span>Atelier</span></a>
@@ -201,14 +217,14 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
 </nav>
 
 <!-- ===== CONTENU ===== -->
-<div class="wrapper">
+<main class="wrapper" id="main">
   <h1>// PIXELDOC — SIMULATEUR</h1>
   <p class="sub">calcul prix de revente &amp; retour sur investissement</p>
 
   <!-- Mode tabs -->
-  <div class="mode-tabs">
-    <button class="mode-tab active" id="tab-normal" onclick="switchMode('normal')">▶ CALCULER MA MARGE</button>
-    <button class="mode-tab" id="tab-inverse" onclick="switchMode('inverse')">◀ PRIX D'ACHAT MAX</button>
+  <div class="mode-tabs" role="group" aria-label="Mode de calcul">
+    <button class="mode-tab active" aria-pressed="true" id="tab-normal" onclick="switchMode('normal')">▶ CALCULER MA MARGE</button>
+    <button class="mode-tab" aria-pressed="false" id="tab-inverse" onclick="switchMode('inverse')">◀ PRIX D'ACHAT MAX</button>
   </div>
 
   <!-- ===== MODE NORMAL ===== -->
@@ -217,7 +233,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <div class="section-title">01 — Machine</div>
     <div class="grid">
       <div class="field">
-        <label>Marque / Série</label>
+        <label for="model">Marque / Série</label>
         <select id="model">
           <optgroup label="Lenovo">
             <option value="thinkpad_t">ThinkPad T-series</option>
@@ -240,7 +256,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
         </select>
       </div>
       <div class="field">
-        <label>Processeur</label>
+        <label for="gen">Processeur</label>
         <select id="gen">
           <optgroup label="Intel Core i3">
             <option value="i3_6">i3 6e gen</option>
@@ -276,7 +292,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
         </select>
       </div>
       <div class="field">
-        <label>RAM</label>
+        <label for="ram">RAM</label>
         <select id="ram">
           <option value="0">4 Go</option>
           <option value="15" selected>8 Go</option>
@@ -285,7 +301,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
         </select>
       </div>
       <div class="field">
-        <label>Stockage</label>
+        <label for="ssd">Stockage</label>
         <select id="ssd">
           <option value="0">HDD (pas de SSD)</option>
           <option value="10">SSD 128 Go</option>
@@ -317,27 +333,27 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <div class="section-title">04 — Coûts</div>
     <div class="grid">
       <div class="field">
-        <label>Prix d'achat (€)</label>
+        <label for="achat">Prix d'achat (€)</label>
         <input type="number" id="achat" value="30" min="0" step="1">
       </div>
       <div class="field">
-        <label>Pièces importées (€)</label>
+        <label for="pieces">Pièces importées (€)</label>
         <input type="number" id="pieces" value="20" min="0" step="1">
       </div>
       <div class="field">
-        <label>Octroi de mer (%)</label>
+        <label for="octroi">Octroi de mer (%)</label>
         <input type="number" id="octroi" value="2.5" min="0" max="50" step="0.1">
       </div>
       <div class="field">
-        <label>Taux horaire (€/h)</label>
+        <label for="taux">Taux horaire (€/h)</label>
         <input type="number" id="taux" value="35" min="0" step="1">
       </div>
       <div class="field full">
-        <label>Main d'œuvre (heures)</label>
+        <label for="heures">Main d'œuvre (heures)</label>
         <div class="inline-row">
-          <input type="number" id="heures" value="1" min="0" step="0.5">
+          <input type="number" aria-label="Heures de main d'œuvre" id="heures" value="1" min="0" step="0.5">
           <span class="inline-sep">h  ×</span>
-          <input type="number" id="taux2" value="35" min="0" step="1">
+          <input type="number" aria-label="Taux horaire (€/h)" id="taux2" value="35" min="0" step="1">
           <span class="inline-sep">€/h</span>
         </div>
       </div>
@@ -346,7 +362,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <button class="btn" onclick="calc()">▶ CALCULER LA MARGE</button>
 
     <!-- Résultat mode normal -->
-    <div class="result" id="result">
+    <div class="result" id="result" aria-live="polite">
       <div class="result-grid">
         <div class="rcard">
           <div class="lbl">Prix conseillé</div>
@@ -379,27 +395,27 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <div class="section-title">02 — Objectif de marge</div>
     <div class="grid">
       <div class="field">
-        <label>Prix de vente cible (€)</label>
+        <label for="inv-vente">Prix de vente cible (€)</label>
         <input type="number" id="inv-vente" value="120" min="0" step="1">
       </div>
       <div class="field">
-        <label>Marge min souhaitée (%)</label>
+        <label for="inv-marge-min">Marge min souhaitée (%)</label>
         <input type="number" id="inv-marge-min" value="30" min="0" max="100" step="1">
       </div>
       <div class="field">
-        <label>Pièces estimées (€)</label>
+        <label for="inv-pieces">Pièces estimées (€)</label>
         <input type="number" id="inv-pieces" value="20" min="0" step="1">
       </div>
       <div class="field">
-        <label>Octroi de mer (%)</label>
+        <label for="inv-octroi">Octroi de mer (%)</label>
         <input type="number" id="inv-octroi" value="2.5" min="0" max="50" step="0.1">
       </div>
       <div class="field full">
-        <label>Main d'œuvre (heures × taux)</label>
+        <label for="inv-heures">Main d'œuvre (heures × taux)</label>
         <div class="inline-row">
-          <input type="number" id="inv-heures" value="1" min="0" step="0.5">
+          <input type="number" aria-label="Heures de main d'œuvre" id="inv-heures" value="1" min="0" step="0.5">
           <span class="inline-sep">h  ×</span>
-          <input type="number" id="inv-taux" value="35" min="0" step="1">
+          <input type="number" aria-label="Taux horaire (€/h)" id="inv-taux" value="35" min="0" step="1">
           <span class="inline-sep">€/h</span>
         </div>
       </div>
@@ -408,7 +424,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <button class="btn" onclick="calcInverse()">◀ CALCULER LE PRIX D'ACHAT MAX</button>
 
     <!-- Résultat mode inversé -->
-    <div class="result" id="result-inverse">
+    <div class="result" id="result-inverse" aria-live="polite">
       <div class="result-grid">
         <div class="rcard">
           <div class="lbl">Prix achat max</div>
@@ -431,7 +447,7 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
 
   </div><!-- /section-inverse -->
 
-</div><!-- /wrapper -->
+</main><!-- /wrapper -->
 
 <script>
 /* ===== BASE PRIX MARCHÉ (i5 6e gen de référence) ===== */
@@ -489,18 +505,21 @@ const BASE = {
 
 /* ===== UTILITAIRES ===== */
 function pickPill(el, group) {
-  document.querySelectorAll('#' + group + ' .pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('#' + group + ' .pill').forEach(p => { p.classList.remove('active'); p.setAttribute('aria-pressed','false'); });
+  el.classList.add('active'); el.setAttribute('aria-pressed','true');
 }
 
 function togglePill(el) {
   el.classList.toggle('active');
+  el.setAttribute('aria-pressed', el.classList.contains('active'));
 }
 
 function switchMode(mode) {
   const isNormal = mode === 'normal';
   document.getElementById('tab-normal').classList.toggle('active', isNormal);
   document.getElementById('tab-inverse').classList.toggle('active', !isNormal);
+  document.getElementById('tab-normal').setAttribute('aria-pressed', isNormal);
+  document.getElementById('tab-inverse').setAttribute('aria-pressed', !isNormal);
   document.getElementById('section-normal').style.display = isNormal ? '' : 'none';
   document.getElementById('section-inverse').classList.toggle('show', !isNormal);
   if (isNormal) document.getElementById('section-inverse').style.display = 'none';
@@ -651,6 +670,7 @@ function calcInverse() {
   }
   document.getElementById('ri-advice').innerHTML = advTxt;
 }
+document.querySelectorAll('.pill').forEach(p => p.setAttribute('aria-pressed', p.classList.contains('active')));
 </script>
 
 </body>
