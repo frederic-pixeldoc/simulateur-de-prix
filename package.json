@@ -1,0 +1,6 @@
+{
+  "name": "simulateur-de-prix",
+  "private": true,
+  "description": "Simulateur de marge et de prix d'achat maximum PixelDoc",
+  "scripts": { "test": "node --test" }
+}

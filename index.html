@@ -205,6 +205,29 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
   .inline-row { flex-wrap: wrap; }
   .wrapper { padding: 20px 14px 40px; }
 }
+
+/* ===== UNITÉS DANS LES CHAMPS, CIBLES TACTILES, COPIE ===== */
+.input-unit { position: relative; }
+.input-unit input { padding-right: 3.4em; }
+.input-unit .unit {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--dim); font-size: 12px; pointer-events: none; font-family: 'Courier New', monospace;
+}
+.hint { font-size: 11px; color: var(--dim); line-height: 1.4; }
+select, input[type="number"] { min-height: 44px; }
+.pill, .mode-tab { min-height: 44px; }
+.pill { display: inline-flex; align-items: center; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1 1 200px; }
+.btn-small { margin-top: 10px; font-size: 12px; padding: 12px; }
+.copy-ok { color: var(--accent); font-size: 12px; min-height: 18px; margin-top: 6px; text-align: center; }
+.defaults-bar { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border); }
+.defaults-bar .btn-row .btn { margin-top: 0; }
+@media (max-width: 480px) {
+  .result-grid { grid-template-columns: 1fr; }
+  .rcard .val { font-size: 24px; }
+  .inline-row { flex-wrap: nowrap; }
+}
 </style>
 </head>
 <body>
@@ -225,6 +248,15 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
 <main class="wrapper" id="main">
   <h1>// PIXELDOC — SIMULATEUR</h1>
   <p class="sub">calcul prix de revente &amp; retour sur investissement</p>
+
+  <div class="field" style="margin-bottom:16px">
+    <label for="tva">TVA sur la vente</label>
+    <select id="tva">
+      <option value="0" selected>Sans TVA (franchise en base)</option>
+      <option value="8.5">TVA Réunion 8,5 % — prix de vente TTC</option>
+    </select>
+    <span class="hint">Avec TVA, les prix de vente saisis/conseillés sont TTC et la marge est calculée sur le prix HT.</span>
+  </div>
 
   <!-- Mode tabs -->
   <div class="mode-tabs" role="group" aria-label="Mode de calcul">
@@ -338,29 +370,26 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <div class="section-title">04 — Coûts</div>
     <div class="grid">
       <div class="field">
-        <label for="achat">Prix d'achat (€)</label>
-        <input type="number" id="achat" value="30" min="0" step="1">
+        <label for="achat">Prix d'achat</label>
+        <div class="input-unit"><input type="number" id="achat" value="30" min="0" step="1" inputmode="decimal"><span class="unit">€</span></div>
       </div>
       <div class="field">
-        <label for="pieces">Pièces importées (€)</label>
-        <input type="number" id="pieces" value="20" min="0" step="1">
+        <label for="pieces">Pièces importées</label>
+        <div class="input-unit"><input type="number" id="pieces" value="20" min="0" step="1" inputmode="decimal"><span class="unit">€</span></div>
+        <span class="hint">Valeur en douane (prix + transport/assurance jusqu'à La Réunion)</span>
       </div>
       <div class="field">
-        <label for="octroi">Octroi de mer (%)</label>
-        <input type="number" id="octroi" value="2.5" min="0" max="50" step="0.1">
+        <label for="octroi">Octroi de mer sur les pièces</label>
+        <div class="input-unit"><input type="number" id="octroi" value="2.5" min="0" max="50" step="0.1" inputmode="decimal"><span class="unit">%</span></div>
+        <span class="hint">Varie selon la pièce (code douanier) : à vérifier</span>
       </div>
       <div class="field">
-        <label for="taux">Taux horaire (€/h)</label>
-        <input type="number" id="taux" value="35" min="0" step="1">
+        <label for="heures">Main d'œuvre</label>
+        <div class="input-unit"><input type="number" id="heures" value="1" min="0" step="0.5" inputmode="decimal"><span class="unit">h</span></div>
       </div>
       <div class="field full">
-        <label for="heures">Main d'œuvre (heures)</label>
-        <div class="inline-row">
-          <input type="number" aria-label="Heures de main d'œuvre" id="heures" value="1" min="0" step="0.5">
-          <span class="inline-sep">h  ×</span>
-          <input type="number" aria-label="Taux horaire (€/h)" id="taux2" value="35" min="0" step="1">
-          <span class="inline-sep">€/h</span>
-        </div>
+        <label for="taux">Taux horaire</label>
+        <div class="input-unit"><input type="number" id="taux" value="35" min="0" step="1" inputmode="decimal"><span class="unit">€/h</span></div>
       </div>
     </div>
 
@@ -387,6 +416,8 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
       </div>
       <div class="alert-perte" id="r-alerte-perte"></div>
       <div class="advice" id="r-advice"></div>
+      <button class="btn btn-secondary btn-small" type="button" onclick="copyResult('normal')">📋 Copier le résultat</button>
+      <div class="copy-ok" id="copy-normal" role="status" aria-live="polite"></div>
     </div>
 
   </div><!-- /section-normal -->
@@ -400,29 +431,29 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
     <div class="section-title">02 — Objectif de marge</div>
     <div class="grid">
       <div class="field">
-        <label for="inv-vente">Prix de vente cible (€)</label>
-        <input type="number" id="inv-vente" value="120" min="0" step="1">
+        <label for="inv-vente">Prix de vente cible</label>
+        <div class="input-unit"><input type="number" id="inv-vente" value="120" min="0" step="1" inputmode="decimal"><span class="unit">€</span></div>
       </div>
       <div class="field">
-        <label for="inv-marge-min">Marge min souhaitée (%)</label>
-        <input type="number" id="inv-marge-min" value="30" min="0" max="100" step="1">
+        <label for="inv-roi">Marge min. sur coût</label>
+        <div class="input-unit"><input type="number" id="inv-roi" value="30" min="0" max="1000" step="1" inputmode="decimal"><span class="unit">%</span></div>
+        <span class="hint">Marge ÷ coût de revient (ROI), pas ÷ prix de vente</span>
       </div>
       <div class="field">
-        <label for="inv-pieces">Pièces estimées (€)</label>
-        <input type="number" id="inv-pieces" value="20" min="0" step="1">
+        <label for="inv-pieces">Pièces estimées</label>
+        <div class="input-unit"><input type="number" id="inv-pieces" value="20" min="0" step="1" inputmode="decimal"><span class="unit">€</span></div>
       </div>
       <div class="field">
-        <label for="inv-octroi">Octroi de mer (%)</label>
-        <input type="number" id="inv-octroi" value="2.5" min="0" max="50" step="0.1">
+        <label for="inv-octroi">Octroi de mer sur les pièces</label>
+        <div class="input-unit"><input type="number" id="inv-octroi" value="2.5" min="0" max="50" step="0.1" inputmode="decimal"><span class="unit">%</span></div>
       </div>
-      <div class="field full">
-        <label for="inv-heures">Main d'œuvre (heures × taux)</label>
-        <div class="inline-row">
-          <input type="number" aria-label="Heures de main d'œuvre" id="inv-heures" value="1" min="0" step="0.5">
-          <span class="inline-sep">h  ×</span>
-          <input type="number" aria-label="Taux horaire (€/h)" id="inv-taux" value="35" min="0" step="1">
-          <span class="inline-sep">€/h</span>
-        </div>
+      <div class="field">
+        <label for="inv-heures">Main d'œuvre</label>
+        <div class="input-unit"><input type="number" id="inv-heures" value="1" min="0" step="0.5" inputmode="decimal"><span class="unit">h</span></div>
+      </div>
+      <div class="field">
+        <label for="inv-taux">Taux horaire</label>
+        <div class="input-unit"><input type="number" id="inv-taux" value="35" min="0" step="1" inputmode="decimal"><span class="unit">€/h</span></div>
       </div>
     </div>
 
@@ -448,233 +479,250 @@ select:focus, input[type="number"]:focus { border-color: var(--accent); }
         </div>
       </div>
       <div class="advice" id="ri-advice"></div>
+      <button class="btn btn-secondary btn-small" type="button" onclick="copyResult('inverse')">📋 Copier le résultat</button>
+      <div class="copy-ok" id="copy-inverse" role="status" aria-live="polite"></div>
     </div>
 
   </div><!-- /section-inverse -->
 
+  <div class="defaults-bar">
+    <div class="btn-row">
+      <button class="btn btn-secondary" type="button" onclick="saveDefaults()">💾 Enregistrer comme valeurs par défaut</button>
+      <button class="btn btn-secondary" type="button" onclick="resetDefaults()">↺ Valeurs d'origine</button>
+    </div>
+    <div class="copy-ok" id="defaults-msg" role="status" aria-live="polite"></div>
+  </div>
+
 </main><!-- /wrapper -->
 
+<script src="calculs.js"></script>
 <script>
-/* ===== BASE PRIX MARCHÉ (i5 6e gen de référence) ===== */
-const BASE = {
-  thinkpad_t:   { i3_6:65, i3_8:80,  i3_10:95,  i3_12:115,
-                  6:90,  7:100, 8:130, 9:140, 10:155, 11:170, 12:185, 13:200, 14:210,
-                  '6i7':115, '8i7':160, '10i7':185, '12i7':215, '13i7':230,
-                  r3_3:80, r5_3:100, r5_5:130, r7_3:120, r7_5:155 },
+/* L'interface lit les champs, appelle les fonctions pures de calculs.js, puis affiche. */
+const $ = id => document.getElementById(id);
+const eur = n => Math.round(n) + '€';
+const eurSigne = n => (n >= 0 ? '+' : '−') + Math.abs(Math.round(n)) + '€';
+const num = (id, defaut = 0) => PDCalc.parseNombre($(id).value, defaut);
+const dernierTexte = { normal: '', inverse: '' };
 
-  thinkpad_x:   { i3_6:60, i3_8:75,  i3_10:90,  i3_12:110,
-                  6:85,  7:95,  8:125, 9:135, 10:150, 11:165, 12:180, 13:195, 14:205,
-                  '6i7':110, '8i7':155, '10i7':180, '12i7':210, '13i7':225,
-                  r3_3:75, r5_3:95,  r5_5:125, r7_3:115, r7_5:150 },
-
-  ideapad:      { i3_6:50, i3_8:65,  i3_10:80,  i3_12:95,
-                  6:70,  7:80,  8:105, 9:115, 10:130, 11:145, 12:160, 13:175, 14:185,
-                  '6i7':90,  '8i7':130, '10i7':155, '12i7':180, '13i7':195,
-                  r3_3:65, r5_3:85,  r5_5:110, r7_3:100, r7_5:135 },
-
-  dell_latitude:{ i3_6:55, i3_8:70,  i3_10:85,  i3_12:105,
-                  6:80,  7:90,  8:120, 9:130, 10:145, 11:160, 12:175, 13:190, 14:200,
-                  '6i7':105, '8i7':150, '10i7':175, '12i7':205, '13i7':220,
-                  r3_3:70, r5_3:90,  r5_5:120, r7_3:110, r7_5:145 },
-
-  dell_optiplex:{ i3_6:45, i3_8:60,  i3_10:75,  i3_12:90,
-                  6:70,  7:80,  8:110, 9:120, 10:135, 11:150, 12:165, 13:180, 14:190,
-                  '6i7':95,  '8i7':140, '10i7':165, '12i7':190, '13i7':205,
-                  r3_3:60, r5_3:80,  r5_5:105, r7_3:95,  r7_5:130 },
-
-  hp_elite:     { i3_6:55, i3_8:70,  i3_10:85,  i3_12:105,
-                  6:80,  7:90,  8:120, 9:130, 10:145, 11:160, 12:175, 13:190, 14:200,
-                  '6i7':105, '8i7':150, '10i7':175, '12i7':205, '13i7':220,
-                  r3_3:70, r5_3:90,  r5_5:120, r7_3:110, r7_5:145 },
-
-  acer:         { i3_6:45, i3_8:58,  i3_10:72,  i3_12:88,
-                  6:65,  7:75,  8:100, 9:110, 10:125, 11:138, 12:152, 13:165, 14:175,
-                  '6i7':85,  '8i7':125, '10i7':148, '12i7':172, '13i7':185,
-                  r3_3:60, r5_3:78,  r5_5:102, r7_3:92,  r7_5:125 },
-
-  asus:         { i3_6:48, i3_8:62,  i3_10:76,  i3_12:92,
-                  6:68,  7:78,  8:105, 9:115, 10:128, 11:142, 12:156, 13:170, 14:180,
-                  '6i7':88,  '8i7':130, '10i7':152, '12i7':176, '13i7':190,
-                  r3_3:62, r5_3:82,  r5_5:108, r7_3:96,  r7_5:130 },
-
-  autre_laptop: { i3_6:40, i3_8:52,  i3_10:65,  i3_12:80,
-                  6:60,  7:70,  8:90,  9:100, 10:115, 11:128, 12:142, 13:155, 14:165,
-                  '6i7':80,  '8i7':110, '10i7':135, '12i7':158, '13i7':172,
-                  r3_3:55, r5_3:72,  r5_5:95,  r7_3:85,  r7_5:115 },
-
-  autre_fixe:   { i3_6:35, i3_8:45,  i3_10:58,  i3_12:70,
-                  6:50,  7:60,  8:80,  9:90,  10:100, 11:112, 12:125, 13:138, 14:148,
-                  '6i7':70,  '8i7':100, '10i7':120, '12i7':142, '13i7':155,
-                  r3_3:48, r5_3:62,  r5_5:82,  r7_3:72,  r7_5:102 },
-};
-
-/* ===== UTILITAIRES ===== */
+/* ===== PILLS / MODES ===== */
 function pickPill(el, group) {
   document.querySelectorAll('#' + group + ' .pill').forEach(p => { p.classList.remove('active'); p.setAttribute('aria-pressed','false'); });
   el.classList.add('active'); el.setAttribute('aria-pressed','true');
 }
-
 function togglePill(el) {
   el.classList.toggle('active');
   el.setAttribute('aria-pressed', el.classList.contains('active'));
 }
-
 function switchMode(mode) {
   const isNormal = mode === 'normal';
-  document.getElementById('tab-normal').classList.toggle('active', isNormal);
-  document.getElementById('tab-inverse').classList.toggle('active', !isNormal);
-  document.getElementById('tab-normal').setAttribute('aria-pressed', isNormal);
-  document.getElementById('tab-inverse').setAttribute('aria-pressed', !isNormal);
-  document.getElementById('section-normal').style.display = isNormal ? '' : 'none';
-  document.getElementById('section-inverse').classList.toggle('show', !isNormal);
-  if (isNormal) document.getElementById('section-inverse').style.display = 'none';
-  else document.getElementById('section-normal').style.display = 'none';
+  $('tab-normal').classList.toggle('active', isNormal);
+  $('tab-inverse').classList.toggle('active', !isNormal);
+  $('tab-normal').setAttribute('aria-pressed', isNormal);
+  $('tab-inverse').setAttribute('aria-pressed', !isNormal);
+  $('section-normal').style.display = isNormal ? '' : 'none';
+  $('section-inverse').classList.toggle('show', !isNormal);
+  $('section-inverse').style.display = isNormal ? 'none' : '';
 }
 
-/* Synchronise taux horaire entre les deux champs du mode normal */
-document.getElementById('taux').addEventListener('input', function() {
-  document.getElementById('taux2').value = this.value;
-});
-document.getElementById('taux2').addEventListener('input', function() {
-  document.getElementById('taux').value = this.value;
-});
-
-/* ===== LECTURE DES INPUTS COMMUNS ===== */
+/* ===== LECTURE DES CHAMPS ===== */
 function readMachine() {
-  const model = document.getElementById('model').value;
-  const gen   = document.getElementById('gen').value;
-  const ram   = parseInt(document.getElementById('ram').value);
-  const ssd   = parseInt(document.getElementById('ssd').value);
   const etatEl = document.querySelector('#etat .pill.active');
-  const etat  = etatEl ? parseInt(etatEl.dataset.val) : 15;
-  let defauts = 0;
-  document.querySelectorAll('#defauts .pill.active').forEach(p => { defauts += parseInt(p.dataset.val); });
-  const base  = (BASE[model] && BASE[model][gen]) ? BASE[model][gen] : 80;
-  const valeur = Math.max(30, base + ram + ssd + etat + defauts);
-  return valeur;
+  return PDCalc.estimerValeur({
+    modele: $('model').value, gen: $('gen').value,
+    ram: parseInt($('ram').value), ssd: parseInt($('ssd').value),
+    etat: etatEl ? parseInt(etatEl.dataset.val) : 15,
+    defauts: [...document.querySelectorAll('#defauts .pill.active')].map(p => parseInt(p.dataset.val)),
+  });
 }
+const readTva = () => num('tva', 0);
+const tvaLabel = t => t > 0 ? ` (TTC, TVA ${String(t).replace('.', ',')} %)` : '';
 
-/* ===== MODE NORMAL — CALCUL ===== */
+/* ===== MODE NORMAL ===== */
 function calc() {
-  const valeur  = readMachine();
-  const achat   = parseFloat(document.getElementById('achat').value)  || 0;
-  const pieces  = parseFloat(document.getElementById('pieces').value) || 0;
-  const octroi  = parseFloat(document.getElementById('octroi').value) || 0;
-  const heures  = parseFloat(document.getElementById('heures').value) || 0;
-  const taux    = parseFloat(document.getElementById('taux2').value)  || 0;
+  const tva = readTva();
+  const valeur = readMachine();
+  const r = PDCalc.calculerMarge({
+    valeur, tvaPct: tva, achat: num('achat'), pieces: num('pieces'),
+    octroiPct: num('octroi'), heures: num('heures'), taux: num('taux'),
+  });
+  const roi = r.roi === null ? null : Math.round(r.roi);
+  const fb = Math.round(r.fourchetteBasse);
+  const fourchette = `${fb}€ – ${Math.round(r.fourchetteHaute)}€`;
 
-  const coutOctroi  = pieces * (octroi / 100);
-  const coutMO      = heures * taux;
-  const coutTotal   = achat + pieces + coutOctroi + coutMO;
-  const marge       = valeur - coutTotal;
-  /* Retour sur investissement = marge / coût total × 100 */
-  const roi         = coutTotal > 0 ? Math.round((marge / coutTotal) * 100) : 100;
-  const fourchette  = `${Math.round(valeur * 0.9)}€ – ${Math.round(valeur * 1.1)}€`;
-  const fourchetteBasBas = Math.round(valeur * 0.9);
+  $('result').className = 'result show';
+  $('r-prix').textContent = eur(valeur);
+  $('r-fourchette').textContent = fourchette + (tva > 0 ? ' TTC' : '');
 
-  const r = document.getElementById('result');
-  r.className = 'result show';
+  const margeEl = $('r-marge');
+  margeEl.textContent = eurSigne(r.marge);
+  margeEl.className = 'val ' + (r.marge >= 50 ? 'col-green' : r.marge >= 20 ? 'col-yellow' : 'col-red');
+  $('r-cout').textContent = `Coût total : ${eur(r.coutTotal)}` +
+    (r.coutMO > 0 ? ` (dont MO ${eur(r.coutMO)})` : '') +
+    (r.coutOctroi > 0 ? ` (octroi ${eur(r.coutOctroi)})` : '') +
+    (tva > 0 ? ` · TVA ${eur(r.tva)}` : '');
 
-  document.getElementById('r-prix').textContent = Math.round(valeur) + '€';
-  document.getElementById('r-fourchette').textContent = fourchette;
+  const cls = roi === null ? 'col-accent' : roi >= 60 ? 'col-green' : roi >= 30 ? 'col-yellow' : 'col-red';
+  $('r-pct').textContent = roi === null ? '—' : roi + '%';
+  $('r-pct').className = 'val ' + cls;
+  const bar = $('r-bar');
+  bar.style.width = (roi === null ? 0 : Math.min(100, Math.max(0, roi))) + '%';
+  bar.style.background = roi !== null && roi >= 60 ? 'var(--green)' : roi !== null && roi >= 30 ? 'var(--yellow)' : 'var(--red)';
 
-  const margeEl = document.getElementById('r-marge');
-  margeEl.textContent = (marge >= 0 ? '+' : '') + Math.round(marge) + '€';
-  margeEl.className = 'val ' + (marge >= 50 ? 'col-green' : marge >= 20 ? 'col-yellow' : 'col-red');
+  const alerte = $('r-alerte-perte');
+  if (r.perteNegociation) {
+    alerte.className = 'alert-perte show';
+    alerte.textContent = `⚠ Attention : la fourchette basse (${fb}€) est inférieure à ton coût total (${eur(r.coutTotal)}). En cas de négociation tu pourrais vendre à perte.`;
+  } else alerte.className = 'alert-perte';
 
-  document.getElementById('r-cout').textContent =
-    `Coût total : ${Math.round(coutTotal)}€` +
-    (coutMO > 0 ? ` (dont MO ${Math.round(coutMO)}€)` : '') +
-    (coutOctroi > 0 ? ` (octroi ${Math.round(coutOctroi)}€)` : '');
-
-  const pctEl = document.getElementById('r-pct');
-  pctEl.textContent = roi + '%';
-  pctEl.className = 'val ' + (roi >= 60 ? 'col-green' : roi >= 30 ? 'col-yellow' : 'col-red');
-
-  const bar = document.getElementById('r-bar');
-  bar.style.width   = Math.min(100, Math.max(0, roi)) + '%';
-  bar.style.background = roi >= 60 ? 'var(--green)' : roi >= 30 ? 'var(--yellow)' : 'var(--red)';
-
-  /* Alerte perte en négociation */
-  const alertePerte = document.getElementById('r-alerte-perte');
-  if (fourchetteBasBas < coutTotal) {
-    alertePerte.className = 'alert-perte show';
-    alertePerte.textContent =
-      `⚠ Attention : la fourchette basse (${fourchetteBasBas}€) est inférieure à ton coût total (${Math.round(coutTotal)}€). ` +
-      `En cas de négociation tu pourrais vendre à perte.`;
+  const roiN = roi === null ? 0 : roi;
+  let tag, txt;
+  if (roiN >= 80) tag = '<span class="tag hot">EXCELLENT</span>';
+  else if (roiN >= 40) tag = '<span class="tag ok">CORRECT</span>';
+  else tag = '<span class="tag low">ATTENTION</span>';
+  if (r.marge < 0) {
+    txt = `Opération déficitaire — coût total : <strong>${eur(r.coutTotal)}</strong> pour un bien estimé à ${eur(valeur)}. Négocie le prix d'achat ou réduis les pièces.`;
+  } else if (roiN >= 80) {
+    txt = `Belle affaire à +${roiN}% de ROI. Vise <strong>${eur(valeur)}</strong> sur LeBonCoin, tu peux descendre jusqu'à ${fb}€ sans risque.`;
+  } else if (roiN >= 40) {
+    txt = `Marge correcte. Soigne la présentation (nettoyage, belle photo) pour justifier <strong>${eur(valeur)}</strong>. Coût de revient : ${eur(r.coutTotal)}.`;
   } else {
-    alertePerte.className = 'alert-perte';
+    txt = `ROI faible (${roiN}%). Cherche à réduire les pièces, négocier l'achat, ou augmenter légèrement le prix. Fourchette marché : ${fourchette}.`;
   }
+  $('r-advice').innerHTML = tag + ' ' + txt;
 
-  let tag = '';
-  if (roi >= 80)      tag = '<span class="tag hot">EXCELLENT</span>';
-  else if (roi >= 40) tag = '<span class="tag ok">CORRECT</span>';
-  else                tag = '<span class="tag low">ATTENTION</span>';
-
-  let txt = '';
-  if (marge < 0) {
-    txt = `Opération déficitaire — coût total : <strong>${Math.round(coutTotal)}€</strong> pour un bien estimé à ${Math.round(valeur)}€. Négocie le prix d'achat ou réduis les pièces.`;
-  } else if (roi >= 80) {
-    txt = `Belle affaire à +${roi}% de ROI. Vise <strong>${Math.round(valeur)}€</strong> sur LeBonCoin, tu peux descendre jusqu'à ${fourchetteBasBas}€ sans risque.`;
-  } else if (roi >= 40) {
-    txt = `Marge correcte. Soigne la présentation (nettoyage, belle photo) pour justifier <strong>${Math.round(valeur)}€</strong>. Coût de revient : ${Math.round(coutTotal)}€.`;
-  } else {
-    txt = `ROI faible (${roi}%). Cherche à réduire les pièces, négocier l'achat, ou augmenter légèrement le prix. Fourchette marché : ${fourchette}.`;
-  }
-
-  document.getElementById('r-advice').innerHTML = tag + ' ' + txt;
+  dernierTexte.normal = [
+    `PixelDoc — Simulation de marge`,
+    `Machine : ${$('model').selectedOptions[0].text}, ${$('gen').selectedOptions[0].text}, ${$('ram').selectedOptions[0].text}, ${$('ssd').selectedOptions[0].text}`,
+    `Prix conseillé : ${eur(valeur)}${tvaLabel(tva)} (fourchette ${fourchette})`,
+    ...(tva > 0 ? [`Prix HT : ${eur(r.recettes)} (TVA ${eur(r.tva)})`] : []),
+    `Coût total : ${eur(r.coutTotal)} (achat ${eur(num('achat'))}, pièces ${eur(num('pieces'))}, octroi de mer ${eur(r.coutOctroi)}, MO ${eur(r.coutMO)})`,
+    `Marge : ${eurSigne(r.marge)}`,
+    `ROI : ${roi === null ? 'n/a' : roi + ' %'}`,
+  ].join('\n');
 }
 
-/* ===== MODE INVERSÉ — CALCUL ===== */
+/* ===== MODE INVERSÉ ===== */
 function calcInverse() {
-  const valeur     = readMachine();
-  const venteRef   = parseFloat(document.getElementById('inv-vente').value)    || valeur;
-  const margeMin   = parseFloat(document.getElementById('inv-marge-min').value) || 30;
-  const pieces     = parseFloat(document.getElementById('inv-pieces').value)    || 0;
-  const octroi     = parseFloat(document.getElementById('inv-octroi').value)    || 0;
-  const heures     = parseFloat(document.getElementById('inv-heures').value)    || 0;
-  const taux       = parseFloat(document.getElementById('inv-taux').value)      || 0;
+  const tva = readTva();
+  const valeur = readMachine();
+  const prixVente = num('inv-vente', valeur);
+  const roiMin = num('inv-roi', 30);
+  const r = PDCalc.calculerAchatMax({
+    prixVente, roiMin, tvaPct: tva, pieces: num('inv-pieces'),
+    octroiPct: num('inv-octroi'), heures: num('inv-heures'), taux: num('inv-taux'),
+  });
+  const roi = r.roi === null ? null : Math.round(r.roi);
 
-  const coutOctroi   = pieces * (octroi / 100);
-  const coutMO       = heures * taux;
-  const coutHorsAchat = pieces + coutOctroi + coutMO;
+  $('result-inverse').className = 'result show';
+  const achatEl = $('ri-achat-max');
+  achatEl.textContent = eur(r.achatMax);
+  achatEl.className = 'val ' + (r.realisable ? 'col-accent' : 'col-red');
+  $('ri-cout-hors').textContent = eur(r.coutHorsAchat);
+  const margeEl = $('ri-marge');
+  margeEl.textContent = eurSigne(r.marge);
+  margeEl.className = 'val ' + (r.marge < 0 ? 'col-red' : roi !== null && roi >= 40 ? 'col-green' : 'col-yellow');
+  $('ri-pct').textContent = 'ROI : ' + (roi === null ? 'n/a' : roi + '%');
 
-  /* Pour un ROI de margeMin% : marge = coutTotal * margeMin/100
-     venteRef = coutTotal + marge = coutTotal * (1 + margeMin/100)
-     coutTotal = venteRef / (1 + margeMin/100)
-     achatMax = coutTotal - coutHorsAchat */
-  const coutTotalCible = venteRef / (1 + margeMin / 100);
-  const achatMax       = Math.max(0, coutTotalCible - coutHorsAchat);
-  const margeGeneree   = venteRef - (achatMax + coutHorsAchat);
-  const roiReel        = (achatMax + coutHorsAchat) > 0
-    ? Math.round((margeGeneree / (achatMax + coutHorsAchat)) * 100)
-    : 100;
-
-  const r = document.getElementById('result-inverse');
-  r.className = 'result show';
-
-  const achatEl = document.getElementById('ri-achat-max');
-  achatEl.textContent = Math.round(achatMax) + '€';
-  achatEl.className = 'val ' + (achatMax > 0 ? 'col-accent' : 'col-red');
-
-  document.getElementById('ri-cout-hors').textContent = Math.round(coutHorsAchat) + '€';
-  const margeEl2 = document.getElementById('ri-marge');
-  margeEl2.textContent = '+' + Math.round(margeGeneree) + '€';
-  margeEl2.className = 'val ' + (roiReel >= 40 ? 'col-green' : 'col-yellow');
-  document.getElementById('ri-pct').textContent = 'ROI : ' + roiReel + '%';
-
-  let advTxt = '';
-  if (achatMax <= 0) {
-    advTxt = `Impossible d'atteindre ${margeMin}% de ROI à ce prix de vente — les coûts hors achat (${Math.round(coutHorsAchat)}€) dépassent déjà le budget. Augmente le prix de vente ou réduis les pièces.`;
-  } else if (achatMax < 10) {
-    advTxt = `Le prix d'achat max est très bas (${Math.round(achatMax)}€) — difficile à trouver. Envisage de baisser la marge cible ou d'augmenter le prix de vente.`;
+  let adv;
+  if (!r.realisable) {
+    adv = `Impossible d'atteindre ${roiMin}% de ROI à ce prix de vente — les coûts hors achat (${eur(r.coutHorsAchat)}) dépassent déjà le budget. Augmente le prix de vente ou réduis les pièces.`;
+  } else if (r.achatMax < 10) {
+    adv = `Le prix d'achat max est très bas (${eur(r.achatMax)}) — difficile à trouver. Envisage de baisser la marge cible ou d'augmenter le prix de vente.`;
   } else {
-    const prixVenteConseil = Math.round(valeur);
-    advTxt = `Pour ce type de machine, le marché suggère environ <strong>${prixVenteConseil}€</strong>. ` +
-      `Si tu achètes à ${Math.round(achatMax)}€ ou moins et vends à ${Math.round(venteRef)}€, ton ROI atteint ${roiReel}%.`;
+    adv = `Pour ce type de machine, le marché suggère environ <strong>${eur(valeur)}</strong>. Si tu achètes à ${eur(r.achatMax)} ou moins et vends à ${eur(prixVente)}${tva > 0 ? ' TTC' : ''}, ton ROI atteint ${roi}%.`;
   }
-  document.getElementById('ri-advice').innerHTML = advTxt;
+  $('ri-advice').innerHTML = adv;
+
+  dernierTexte.inverse = [
+    `PixelDoc — Prix d'achat maximum`,
+    `Machine : ${$('model').selectedOptions[0].text}, ${$('gen').selectedOptions[0].text}`,
+    `Vente visée : ${eur(prixVente)}${tvaLabel(tva)}, marge min. sur coût ${roiMin} %`,
+    `Prix d'achat max : ${eur(r.achatMax)}${r.realisable ? '' : ' (objectif irréalisable)'}`,
+    `Coût hors achat : ${eur(r.coutHorsAchat)} (pièces ${eur(num('inv-pieces'))}, octroi de mer, MO)`,
+    `Marge : ${eurSigne(r.marge)} — ROI : ${roi === null ? 'n/a' : roi + ' %'}`,
+  ].join('\n');
 }
+
+/* ===== COPIER LE RÉSULTAT ===== */
+async function copyResult(mode) {
+  const texte = dernierTexte[mode];
+  const msg = $('copy-' + mode);
+  if (!texte) { msg.textContent = 'Aucun résultat à copier.'; return; }
+  try {
+    await navigator.clipboard.writeText(texte);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = texte; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e2) {}
+    ta.remove();
+    if (!ok) { msg.textContent = 'Copie impossible : sélectionne le texte à la main.'; return; }
+  }
+  msg.textContent = '✓ Résultat copié';
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+}
+
+/* ===== VALEURS PAR DÉFAUT (localStorage) ===== */
+const CLE = 'pd-simulateur-defauts-v1';
+const CHAMPS = ['tva','model','gen','ram','ssd','achat','pieces','octroi','heures','taux',
+  'inv-vente','inv-roi','inv-pieces','inv-octroi','inv-heures','inv-taux'];
+const ORIGINE = {};
+CHAMPS.forEach(id => { ORIGINE[id] = $(id).value; });
+ORIGINE.etat = document.querySelector('#etat .pill.active').dataset.val;
+ORIGINE.defauts = [];
+
+function lireFormulaire() {
+  const d = {};
+  CHAMPS.forEach(id => { d[id] = $(id).value; });
+  const e = document.querySelector('#etat .pill.active');
+  d.etat = e ? e.dataset.val : ORIGINE.etat;
+  d.defauts = [...document.querySelectorAll('#defauts .pill')].map((p, i) => p.classList.contains('active') ? i : -1).filter(i => i >= 0);
+  return d;
+}
+function appliquer(d) {
+  CHAMPS.forEach(id => { if (d[id] !== undefined) $(id).value = d[id]; });
+  document.querySelectorAll('#etat .pill').forEach(p => {
+    const on = p.dataset.val === String(d.etat);
+    p.classList.toggle('active', on); p.setAttribute('aria-pressed', on);
+  });
+  document.querySelectorAll('#defauts .pill').forEach((p, i) => {
+    const on = (d.defauts || []).includes(i);
+    p.classList.toggle('active', on); p.setAttribute('aria-pressed', on);
+  });
+}
+function afficherDefauts(t) {
+  $('defaults-msg').textContent = t;
+  setTimeout(() => { $('defaults-msg').textContent = ''; }, 3000);
+}
+function saveDefaults() {
+  try { localStorage.setItem(CLE, JSON.stringify(lireFormulaire())); afficherDefauts('✓ Valeurs enregistrées sur cet appareil'); }
+  catch (e) { afficherDefauts('Enregistrement impossible (stockage du navigateur désactivé).'); }
+}
+function resetDefaults() {
+  try { localStorage.removeItem(CLE); } catch (e) {}
+  appliquer(ORIGINE);
+  afficherDefauts("✓ Valeurs d'origine rétablies");
+}
+(function chargerDefauts() {
+  try {
+    const brut = localStorage.getItem(CLE);
+    if (brut) appliquer(JSON.parse(brut));
+  } catch (e) { /* stockage indisponible ou JSON invalide : valeurs d'origine */ }
+})();
+
+/* Recalcul automatique une fois un résultat affiché */
+document.addEventListener('input', () => {
+  if ($('result').classList.contains('show') && $('section-normal').style.display !== 'none') calc();
+  if ($('result-inverse').classList.contains('show') && $('section-inverse').style.display !== 'none') calcInverse();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.pill')) return;
+  setTimeout(() => {
+    if ($('result').classList.contains('show') && $('section-normal').style.display !== 'none') calc();
+    if ($('result-inverse').classList.contains('show') && $('section-inverse').style.display !== 'none') calcInverse();
+  });
+});
 document.querySelectorAll('.pill').forEach(p => p.setAttribute('aria-pressed', p.classList.contains('active')));
 </script>
 
